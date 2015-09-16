@@ -6,7 +6,7 @@ from geopy.geocoders import GoogleV3
 from geopy.geocoders.base import GeocoderTimedOut
 from geopy.geocoders.base import SSLError
 import util
-from credendials import google_key
+from credentials import google_key
 
 GOOGgeolocator = GoogleV3(api_key=google_key)
 

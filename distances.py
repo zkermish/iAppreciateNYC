@@ -31,3 +31,7 @@ def getStationDistances(df, subwayStations):
             df['geoObj'].apply(lambda x: geocalc(x.latitude, x.longitude,
                                                  float(station['latitude']),
                                                  float(station['longitude'])))
+
+def getClosestStation(df, subwayStations):
+    stationColumns = map(lambda x: x['name'] + '_distance', subwayStations['stations'])
+    df['nearestStation'] = df[stationColumns].idxmin(axis=1)
