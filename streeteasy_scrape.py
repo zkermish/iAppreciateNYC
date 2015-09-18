@@ -54,9 +54,18 @@ br.form['password'] = streeteasy_passwd
 # Login
 br.submit()
 
+def timeoutSafeOpen(br, url):
+    try :
+        br.open(url)
+    except:
+        #error httperror_seek_wrapper??
+        print('Timed out. Waiting...')
+        time.sleep(2)
+        timeoutSafeOpen(br, url)
 
 def sePageToDF(url):
-    br.open(url)
+
+    timeoutSafeOpen(br, url)
 
     soup = BeautifulSoup.BeautifulSoup(br.response().read())
     addresses = [address.text
@@ -136,12 +145,16 @@ def getaddressQuery(df):
     except KeyError as missingNeighborhood:
         print('Need new neighborhood for %s!' % missingNeighborhood.message)
         baseUrl = 'http://streeteasy.com/area'
-        nbhdurl = os.path.join(baseUrl,
-                               str(missingNeighborhood.message).lower().replace(' ', '-').replace('/', '-').translate(None, '()'))
+        neighborhood = str(missingNeighborhood.message).lower().replace(' ', '-').replace('/', '-').translate(None, '()')
+        nbhdurl = os.path.join(baseUrl, neighborhood)
         print(nbhdurl)
-        borough = scrapeAreaPage(nbhdurl)
-        neighborhoodMapping[missingNeighborhood.message] = borough
-        util.pickle_save(neighborhoodMapping, 'data/neighborhoodMapping.pkl')
+        try:
+            borough = scrapeAreaPage(nbhdurl)
+        except AttributeError:
+            print('I am a borough')
+            borough = neighborhood
+            neighborhoodMapping[missingNeighborhood.message] = borough
+            util.pickle_save(neighborhoodMapping, 'data/neighborhoodMapping.pkl')
 
         df['addressToQuery'] = df['address'].apply(lambda x: x.split('#')[0]) \
             + ', ' \
