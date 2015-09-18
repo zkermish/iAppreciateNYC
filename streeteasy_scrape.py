@@ -153,8 +153,8 @@ def getaddressQuery(df):
         except AttributeError:
             print('I am a borough')
             borough = neighborhood
-            neighborhoodMapping[missingNeighborhood.message] = borough
-            util.pickle_save(neighborhoodMapping, 'data/neighborhoodMapping.pkl')
+        neighborhoodMapping[missingNeighborhood.message] = borough
+        util.pickle_save(neighborhoodMapping, 'data/neighborhoodMapping.pkl')
 
         df['addressToQuery'] = df['address'].apply(lambda x: x.split('#')[0]) \
             + ', ' \
