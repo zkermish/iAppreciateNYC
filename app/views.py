@@ -1,10 +1,11 @@
-from flask import render_template, request
+from flask import render_template, request, Response
 from flask_googlemaps import GoogleMaps
 from flask_googlemaps import Map
 
 from app import app
 import pymysql as mdb
 from a_Model import ModelIt
+import pygal
 
 GoogleMaps(app)
 
@@ -76,6 +77,12 @@ def cities_output():
         cur.execute("SELECT sellData, `%s` FROM stationPPSFT;" % closestStation)
         query_results = cur.fetchall()
 
+    sellDate, ppsqf = zip(*query_results)
+    line_chart = pygal.Line(disable_xml_declaration=True, x_label_rotation=20)
+    line_chart.title = 'Price per square foot appreciation'
+    line_chart.x_labels =  map(lambda d: d.strftime('%Y-%m-%d'), list(sellDate))
+    line_chart.add(closestStation, list(ppsqf))
+
     cities = []
     #for result in query_results:
     #    cities.append(dict(name=result[0], country=result[1], population=result[2]))
@@ -86,7 +93,19 @@ def cities_output():
 							cities=cities,
                             stair = closestStair,
                             station=closestStation,
-                            mymap=mymap)
+                            mymap=mymap,
+                            line_chart = line_chart)
+
+@app.route('/linechart/')
+def linechart():
+    line_chart = pygal.Line()
+    line_chart.title = 'Browser usage evolution (in %)'
+    line_chart.x_labels = map(str, range(2002, 2013))
+    line_chart.add('Firefox', [None, None, 0, 16.6, 25, 31, 36.4, 45.5, 46.3, 42.8, 37.1])
+    line_chart.add('Chrome', [None, None, None, None, None, None, 0, 3.9, 10.8, 23.8, 35.3])
+    line_chart.add('IE', [85.8, 84.6, 84.7, 74.5, 66, 58.6, 54.7, 44.8, 36.2, 26.6, 20.1])
+    line_chart.add('Others', [14.2, 15.4, 15.3, 8.9, 9, 10.4, 8.9, 5.8, 6.7, 6.8, 7.5])
+    return Response(response=line_chart.render(), content_type='image/svg+xml')
 
 @app.route("/maps")
 def mapview():

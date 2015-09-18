@@ -22,6 +22,8 @@
     <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
     <script src="../../assets/js/ie-emulation-modes-warning.js"></script>
     {{mymap.js}}
+    <script type="text/javascript" src="http://kozea.github.com/pygal.js/javascripts/svg.jquery.js"></script>
+    <script type="text/javascript" src="http://kozea.github.com/pygal.js/javascripts/pygal-tooltips.js"></script>
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -65,43 +67,36 @@
 
         <form  action="/output" method="GET">
           <div class="form-group">
-            <label for="ID">City  Name:</label>
+            <label for="ID">Try another address?:</label>
             <input type="text" id="ID" name='ID' placeholder="e.g. ">
           </div>
           <div>
-            <button type="submit" class="btn btn-default btn-lg">Find this city!</button>
+            <button type="submit" class="btn btn-default btn-lg">Predict for this address!</button>
           </div>
         </form>
       </div>
       <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
       <script src="static/js/bootstrap.min.js"></script>
 
-    </div> <!-- /.container-->
+       <div call="row">
+       <div class="col-md-6">
+         <h3>Predicted appreciation for the neighborhood:<br>
+         I can haz model?</h3>
+        {{ line_chart.render()|safe }}
+
+       </div>
+       </div>
+
 
       <div class="container">
         <div class="starter-template">
-          <h3>Results:</h3>
-          <p class="lead">Below is the result of your query.<br> You just took user input and looked up the information. Now we need to expand the functionality!</p>
-        </div>
-
-        <table class="table table-hover">
-        <tr><th>Name</th><th>Country</th><th>Population</th></tr>
-        {% for city in cities %}
-        <tr><td>{{ city['name'] }}</td><td>{{ city['country']}}</td><td> {{ city['population'] }}</td></tr>
-        {% endfor %}
-        </table>
-
-
-       </div><!-- /.container -->
-
-      <div class="container">
-        <div class="starter-template">
-          <h3>Another Result:</h3>
+          <h3>Closest subway:</h3>
           <p class="lead">
             The nearest subway is {{station}}<br>
             The closest entrance is at {{stair}}</p>
-          <h2> Bitches be mapping!</h2>
           {{mymap.html}}
+
+          <h2> Bitches be mapping!</h2>
 
         </div>
 
