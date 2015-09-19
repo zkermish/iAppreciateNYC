@@ -83,6 +83,18 @@ def cities_output():
     line_chart.x_labels =  map(lambda d: d.strftime('%Y-%m-%d'), list(sellDate))
     line_chart.add(closestStation, list(ppsqf))
 
+    dateline = pygal.DateLine(disable_xml_declaration=True,
+                                  x_label_rotation=25)
+    #dateline.x_labels = [
+    #    date(2013, 1, 1),
+    #    date(2013, 7, 1),
+    #    date(2014, 1, 1),
+    #    date(2014, 7, 1),
+    #    date(2015, 1, 1),
+    #    date(2015, 7, 1)
+    #]
+    dateline.add(closestStation, zip(sellDate, ppsqf))
+
     cities = []
     #for result in query_results:
     #    cities.append(dict(name=result[0], country=result[1], population=result[2]))
@@ -94,7 +106,7 @@ def cities_output():
                             stair = closestStair,
                             station=closestStation,
                             mymap=mymap,
-                            line_chart = line_chart)
+                            line_chart = dateline)
 
 @app.route('/linechart/')
 def linechart():
