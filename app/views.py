@@ -17,12 +17,11 @@ def index():
         title = 'Home', user = { 'nickname': 'Miguel' },
         )
 
-db = mdb.connect(user="root", host="localhost", db="world_innodb",  charset='utf8')
-mydb = mdb.connect(user="root", host="localhost", db="iapp",  charset='utf8')
-
 
 @app.route("/db_fancy")
 def cities_page_fancy():
+    db = mdb.connect(user="root", host="localhost", db="world_innodb",  charset='utf8')
+
     with db:
         cur = db.cursor()
         cur.execute('SELECT Name, CountryCode, \
@@ -50,16 +49,20 @@ def cities_output():
     subwayStations = util.pickle_load('subwaydata/NYCsubway_network.pkl')
     stairInfo = util.pickle_load('subwaydata/NYCsubway_network_withUnique3.pkl')
     geoObj = getGeocodes.getGeoObj(address)
-    closestStair = distances.getClosestStation(geoObj.latitude, geoObj.longitude, subwayStations)
+    closestStair = distances.getClosestStation(geoObj.latitude,
+                                               geoObj.longitude,
+                                               subwayStations)
     closestStation = stairInfo[closestStair]['stationName']
     mymap = Map(
         identifier="view-side",
         lat=geoObj.latitude,
         lng=geoObj.longitude,
-        markers=[(geoObj.latitude,geoObj.longitude)],
+        markers=[(geoObj.latitude, geoObj.longitude)],
         zoom=15
     )
 
+    mydb = mdb.connect(user="root", host="localhost",
+                       db="iapp",  charset='utf8')
     with mydb:
         cur = mydb.cursor()
         #just select the city from the world_innodb that the user inputs
