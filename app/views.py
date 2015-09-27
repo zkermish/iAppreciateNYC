@@ -1,4 +1,4 @@
-from flask import render_template, request, Response
+from flask import render_template, request, Response, jsonify
 from flask_googlemaps import GoogleMaps
 from flask_googlemaps import Map
 
@@ -6,6 +6,7 @@ from app import app
 import pymysql as mdb
 from a_Model import ModelIt
 import pygal
+import numpy as np
 
 GoogleMaps(app)
 
@@ -19,18 +20,6 @@ def index():
 db = mdb.connect(user="root", host="localhost", db="world_innodb",  charset='utf8')
 mydb = mdb.connect(user="root", host="localhost", db="iapp",  charset='utf8')
 
-@app.route('/db')
-def cities_page():
-
-    with db:
-        cur = db.cursor()
-        cur.execute("SELECT Name FROM City LIMIT 15;")
-        query_results = cur.fetchall()
-    cities = ""
-    for result in query_results:
-        cities += result[0]
-        cities += "<br>"
-    return cities
 
 @app.route("/db_fancy")
 def cities_page_fancy():
@@ -59,7 +48,7 @@ def cities_output():
     import distances
     import getGeocodes
     subwayStations = util.pickle_load('subwaydata/NYCsubway_network.pkl')
-    stairInfo = util.pickle_load('subwaydata/NYCsubway_network_withUnique.pkl')
+    stairInfo = util.pickle_load('subwaydata/NYCsubway_network_withUnique3.pkl')
     geoObj = getGeocodes.getGeoObj(address)
     closestStair = distances.getClosestStation(geoObj.latitude, geoObj.longitude, subwayStations)
     closestStation = stairInfo[closestStair]['stationName']
@@ -74,26 +63,36 @@ def cities_output():
     with mydb:
         cur = mydb.cursor()
         #just select the city from the world_innodb that the user inputs
-        cur.execute("SELECT sellData, `%s` FROM stationPPSFT;" % closestStation)
+        cur.execute("SELECT sellData, `%s` FROM stationPPSFT;" % closestStation[:60])
         query_results = cur.fetchall()
 
-    sellDate, ppsqf = zip(*query_results)
-    line_chart = pygal.Line(disable_xml_declaration=True, x_label_rotation=20)
-    line_chart.title = 'Price per square foot appreciation'
-    line_chart.x_labels =  map(lambda d: d.strftime('%Y-%m-%d'), list(sellDate))
-    line_chart.add(closestStation, list(ppsqf))
+    sellDate1, ppsqf = zip(*query_results)
+    with mydb:
+        cur = mydb.cursor()
+        #just select the city from the world_innodb that the user inputs
+        resultTable = closestStation+'_GPprediction'
+        cur.execute("SELECT sellData, `%s`, pred, sigma FROM `%s`;" %
+                    (closestStation[:60]+'_filtered', resultTable))
+        query_results = cur.fetchall()
+
+    sellDate2, smoothed, pred, sigma = zip(*query_results)
+
+    #line_chart = pygal.Line(disable_xml_declaration=True, x_label_rotation=20)
+    #line_chart.title = 'Price per square foot appreciation'
+    #line_chart.x_labels =  map(lambda d: d.strftime('%Y-%m-%d'), list(sellDate1))
+    #line_chart.add(closestStation, list(ppsqf))
 
     dateline = pygal.DateLine(disable_xml_declaration=True,
                                   x_label_rotation=25)
-    #dateline.x_labels = [
-    #    date(2013, 1, 1),
-    #    date(2013, 7, 1),
-    #    date(2014, 1, 1),
-    #    date(2014, 7, 1),
-    #    date(2015, 1, 1),
-    #    date(2015, 7, 1)
-    #]
-    dateline.add(closestStation, zip(sellDate, ppsqf))
+    dateline.add(closestStation, zip(sellDate1, ppsqf))
+    dateline.add('Filtered', zip(sellDate2, smoothed))
+    dateline.add('Forecast', zip(sellDate2, pred))
+    upperBound = (np.array(pred, dtype=np.float) +
+                            1.96*np.array(sigma, dtype=np.float))
+    lowerBound = (np.array(pred, dtype=np.float) -
+                            1.96*np.array(sigma, dtype=np.float))
+    dateline.add('Bound', zip(np.array(sellDate2)[np.isfinite(upperBound)], upperBound[np.isfinite(upperBound)]))
+    dateline.add('Bound', zip(np.array(sellDate2)[np.isfinite(lowerBound)], lowerBound[np.isfinite(lowerBound)]))
 
     cities = []
     #for result in query_results:

@@ -1,4 +1,7 @@
 import numpy as np
+import time
+from urllib2 import URLError
+import networkx
 
 def geocalc(lat0, lon0, lat1, lon1):
     """Return the distance (in km) between two points in
@@ -31,13 +34,25 @@ def getStationDistances(df, subwayStations):
                                                  float(station['latitude']),
                                                  float(station['longitude'])))
 
+def timeoutSafeQuery(google_places, params):
+    try:
+        query_result = google_places.nearby_search(**params)
+        print('Yeah')
+        return query_result
+    except URLError:
+        print('URLError. Waiting...')
+        time.sleep(2)
+        timeoutSafeQuery(google_places, params)
+
 def googlePlacesNearestSubway(lat,lon, radius=600):
     from googleplaces import GooglePlaces, types, lang
     import credentials
     google_places = GooglePlaces(credentials.google_key)
-    query_result = google_places.nearby_search(lat_lng =
-        {'lat': lat, 'lng': lon},
-        radius = radius, types=[types.TYPE_SUBWAY_STATION], rankby='distance')
+    params = {'lat_lng': {'lat': lat, 'lng': lon},
+              'radius': radius,
+              'types': [types.TYPE_SUBWAY_STATION],
+              'rankby': 'distance'}
+    query_result = timeoutSafeQuery(google_places, params)
     try:
         return query_result.places[0]
     except IndexError:
@@ -50,19 +65,44 @@ def googleMapsTransitTimes(stairInfo):
                                          transit_mode ='subway',
                                          departure_time = departure_time)
 
+
+def addStationNamestoGraph(graph):
+    for node in graph.nodes():
+        try:
+            googleInfo = googlePlacesNearestSubway(graph.node[node]['lat'],
+                                               graph.node[node]['lon'])
+        except KeyError:
+            print('No lat/lon for %s' % node)
+            continue
+        if googleInfo:
+            print('Found station %s: %s' % (googleInfo.name, graph.node[node]))
+            stationName = googleInfo.name
+            graph.node[node]['name'] = stationName
+        else:
+            print('No station found nearby %s?' % station['name'])
+        return graph
+
+
 def stationEntrancestoStation(subwayStations):
-    '''Map subwaystation entrance data to unique subway names'''
+    '''Map subwaystation entrance data to unique subway names
+    (appending) lines running at station to disambguiate repeated names'''
     stairInfo = {}
+
     for i, station in enumerate(subwayStations['stations']):
         #print('Processing station %s, %s' % (i, station['name']))
         googleInfo = googlePlacesNearestSubway(station['latitude'],
                                                station['longitude'])
         if googleInfo:
             print('Found station %s: %s' % (googleInfo.name, station['name']))
+            stationName = googleInfo.name
+            for line in station['lines']:
+                stationName += ('_%s' % line['line_id'])
             stairInfo[station['name']] = {}
-            stairInfo[station['name']]['stationName'] = googleInfo.name
-            stairInfo[station['name']]['staionLat'] = googleInfo.geo_location['lat']
-            stairInfo[station['name']]['staionLng'] = googleInfo.geo_location['lng']
+            stairInfo[station['name']]['stationName'] = stationName
+            stairInfo[station['name']]['stationLat'] = googleInfo.geo_location['lat']
+            stairInfo[station['name']]['stationLng'] = googleInfo.geo_location['lng']
+        else:
+            print('No station found nearby %s?' % station['name'])
     return stairInfo
 
 def getClosestStation(lat, lon, subwayStations):
@@ -79,3 +119,18 @@ def getClosestStations(df, stairInfo):
     #stationColumns = map(lambda x: x['name'], subwayStations['stations'])
     df['nearestStair'] = df[stairInfo.keys()].idxmin(axis=1)
     df['nearestStation'] = df['nearestStair'].apply(lambda x: stairInfo[x]['stationName'])
+
+def getLinegraph(routeID = 'L'):
+    print(routeNameByID[routeID])
+    routeWeekdayTrips = weekdayTrips[weekdayTrips.route_id == routeID]
+    stopIDs = routeWeekdayTrips.merge(weekdayTimes)
+    stops[stops.stop_id.isin(stopIDs)].stop_name.unique()
+    tripIds = stopIDs.trip_id.unique()
+    graph = make_graph([tripIds[0]])
+    graph = addStationNamestoGraph(graph)
+    return graph
+
+def getMappings(graph):
+    mapFromId = networkx.get_node_attributes(graph, 'googleName')
+    mapToId = {v: k for k, v in mapFromId.items()}
+    return mapFromId, mapToId
