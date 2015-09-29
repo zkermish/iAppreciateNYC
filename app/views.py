@@ -48,11 +48,18 @@ def cities_output():
     import getGeocodes
     subwayStations = util.pickle_load('subwaydata/NYCsubway_network.pkl')
     stairInfo = util.pickle_load('subwaydata/NYCsubway_network_withUnique3.pkl')
+    graph = util.pickle_load('subwaydata/NYCsubway_network_graph_9-28.pkl')
     geoObj = getGeocodes.getGeoObj(address)
-    closestStair = distances.getClosestStation(geoObj.latitude,
-                                               geoObj.longitude,
-                                               subwayStations)
-    closestStation = stairInfo[closestStair]['stationName']
+    # closestStair = distances.getClosestStation(geoObj.latitude,
+    #                                           geoObj.longitude,
+    #                                           subwayStations)
+    # closestStation = stairInfo[closestStair]['stationName']
+    closestStation = distances.getClosestStationGraph(geoObj.latitude,
+                                                      geoObj.longitude,
+                                                      graph)
+
+    closestStationName = graph.node[closestStation]['name']
+
     mymap = Map(
         identifier="view-side",
         lat=geoObj.latitude,
@@ -66,7 +73,7 @@ def cities_output():
     with mydb:
         cur = mydb.cursor()
         #just select the city from the world_innodb that the user inputs
-        cur.execute("SELECT sellData, `%s` FROM stationPPSFT;" % closestStation[:60])
+        cur.execute("SELECT sellData, `%s` FROM stationPPSFT2;" % closestStation[:60])
         query_results = cur.fetchall()
 
     sellDate1, ppsqf = zip(*query_results)
@@ -74,7 +81,7 @@ def cities_output():
         cur = mydb.cursor()
         #just select the city from the world_innodb that the user inputs
         resultTable = closestStation+'_GPprediction'
-        cur.execute("SELECT sellData, `%s`, pred, sigma FROM `%s`;" %
+        cur.execute("SELECT sellData, `%s`, y_pred, sigma_pred FROM `%s`;" %
                     (closestStation[:60]+'_filtered', resultTable))
         query_results = cur.fetchall()
 
@@ -84,18 +91,36 @@ def cities_output():
     #line_chart.title = 'Price per square foot appreciation'
     #line_chart.x_labels =  map(lambda d: d.strftime('%Y-%m-%d'), list(sellDate1))
     #line_chart.add(closestStation, list(ppsqf))
+    from pygal.style import Style
+    custom_style = Style(label_font_size=16, major_label_font_size=16,
+                         colors=('#ff1100', '#E89B53', '#0000ff', '#E89B53', '#E89B53'))
 
     dateline = pygal.DateLine(disable_xml_declaration=True,
-                                  x_label_rotation=25)
+                              x_label_rotation=25,
+                              x_title='Date',
+                              y_title='Price per square foot',
+                              style=custom_style,
+                              show_x_guides=True,
+                              show_legend=False)
     dateline.add(closestStation, zip(sellDate1, ppsqf))
-    dateline.add('Filtered', zip(sellDate2, smoothed))
-    dateline.add('Forecast', zip(sellDate2, pred))
+    dateline.add('Forecast', zip(sellDate2, pred), show_dots=False,
+                 stroke_style={'width': 5})
+    dateline.add('Filtered', zip(sellDate2, smoothed), show_dots=False,
+                 stroke_style={'width': 5})
     upperBound = (np.array(pred, dtype=np.float) +
                             1.96*np.array(sigma, dtype=np.float))
     lowerBound = (np.array(pred, dtype=np.float) -
                             1.96*np.array(sigma, dtype=np.float))
-    dateline.add('Bound', zip(np.array(sellDate2)[np.isfinite(upperBound)], upperBound[np.isfinite(upperBound)]))
-    dateline.add('Bound', zip(np.array(sellDate2)[np.isfinite(lowerBound)], lowerBound[np.isfinite(lowerBound)]))
+    dateline.add('Bound', zip(np.array(sellDate2)[np.isfinite(upperBound)],
+                              upperBound[np.isfinite(upperBound)]),
+                              stroke_style={'width': 5,
+                                            'dasharray': '3, 6, 12, 24'},
+                              show_dots=False)
+    dateline.add('Bound', zip(np.array(sellDate2)[np.isfinite(lowerBound)],
+                              lowerBound[np.isfinite(lowerBound)]),
+                              stroke_style={'width': 5,
+                                            'dasharray': '3, 6, 12, 24'},
+                              show_dots=False)
 
     cities = []
     #for result in query_results:
@@ -104,22 +129,11 @@ def cities_output():
     #pop_input = cities[0]['population']
     #the_result = ModelIt(city, pop_input)
     return render_template("output.html",
-							cities=cities,
-                            stair = closestStair,
-                            station=closestStation,
+						    cities=cities,
+                            address = address,
+                            station=closestStationName,
                             mymap=mymap,
                             line_chart = dateline)
-
-@app.route('/linechart/')
-def linechart():
-    line_chart = pygal.Line()
-    line_chart.title = 'Browser usage evolution (in %)'
-    line_chart.x_labels = map(str, range(2002, 2013))
-    line_chart.add('Firefox', [None, None, 0, 16.6, 25, 31, 36.4, 45.5, 46.3, 42.8, 37.1])
-    line_chart.add('Chrome', [None, None, None, None, None, None, 0, 3.9, 10.8, 23.8, 35.3])
-    line_chart.add('IE', [85.8, 84.6, 84.7, 74.5, 66, 58.6, 54.7, 44.8, 36.2, 26.6, 20.1])
-    line_chart.add('Others', [14.2, 15.4, 15.3, 8.9, 9, 10.4, 8.9, 5.8, 6.7, 6.8, 7.5])
-    return Response(response=line_chart.render(), content_type='image/svg+xml')
 
 @app.route("/maps")
 def mapview():

@@ -10,7 +10,7 @@
     <meta name="author" content="">
     <link rel="icon" href="../../favicon.ico">
 
-    <title>Starter Template for Bootstrap</title>
+    <title>{{address}} iAppreciate.NYC prediction</title>
 
     <!-- Bootstrap core CSS -->
     <link href="../static/css/bootstrap.min.css" rel="stylesheet">
@@ -49,9 +49,9 @@
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="#">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li class="active"><a href="/input">Home</a></li>
+            <li><a href="/about">About</a></li>
+            <li><a href="/contact">Contact</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -65,7 +65,7 @@
       </div>
       <div call="row">
       <div class="col-lg-8">
-        <h3>Predicted appreciation for the neighborhood:
+        <h3>Predicted appreciation near the {{station}} station:
         </h3>
        {{ line_chart.render()|safe }}
 
@@ -77,8 +77,9 @@
        <div class="starter-template">
          <h3>Closest subway:</h3>
          <p class="lead">
-           The nearest subway is {{station}}<br>
-           The closest entrance is at {{stair}}</p>
+           The nearest subway to <br>
+           {{address}}<br>
+           is {{station}}</p>
          {{mymap.html}}
 
          <h2> </h2>

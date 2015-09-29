@@ -23,6 +23,35 @@ def geocalc(lat0, lon0, lat1, lon1):
     return EARTH_R * c
 
 
+def getStationDistancesGraph(df, graph):
+    '''Use the subway network graph to get distances between stations'''
+    for i, station in enumerate(graph.nodes()):
+        node = graph.node[station]
+        print('On station %s: %s' % (i, node['name']))
+        df[station] = \
+            df['geoObj'].apply(lambda x: geocalc(x.latitude, x.longitude,
+                                                 float(node['lat']),
+                                                 float(node['lon'])))
+
+
+def getClosestStationsGraph(df, graph):
+    '''Find the closest station for each listing in a dataframe'''
+    df['nearestStation'] = df[graph.nodes()].idxmin(axis=1)
+    df['nearestStationName'] = \
+        df['nearestStation'].apply(lambda x: graph.node[x]['name'])
+
+
+def getClosestStationGraph(lat, lon, graph):
+    '''Find the closest station to a given lat/lon'''
+    stationsdistances = {}
+    for station in graph.nodes():
+        node = graph.node[station]
+        stationsdistances[station] = \
+            geocalc(lat, lon, float(node['lat']),
+                                float(node['lon']))
+    return min(stationsdistances, key=stationsdistances.get)
+
+
 def getStationDistances(df, subwayStations):
     '''Input data frame df and subwayStations info dictionary.
     Returns same data frame with new columns
@@ -89,7 +118,7 @@ def stationEntrancestoStation(subwayStations):
     stairInfo = {}
 
     for i, station in enumerate(subwayStations['stations']):
-        #print('Processing station %s, %s' % (i, station['name']))
+        # print('Processing station %s, %s' % (i, station['name']))
         googleInfo = googlePlacesNearestSubway(station['latitude'],
                                                station['longitude'])
         if googleInfo:
@@ -105,6 +134,7 @@ def stationEntrancestoStation(subwayStations):
             print('No station found nearby %s?' % station['name'])
     return stairInfo
 
+
 def getClosestStation(lat, lon, subwayStations):
     '''Find the closest station to a given lat/lon'''
     stationsdistances = {}
@@ -114,13 +144,15 @@ def getClosestStation(lat, lon, subwayStations):
                                 float(station['longitude']))
     return min(stationsdistances, key=stationsdistances.get)
 
+
 def getClosestStations(df, stairInfo):
     '''Find the closest station for each listing in a dataframe'''
     #stationColumns = map(lambda x: x['name'], subwayStations['stations'])
     df['nearestStair'] = df[stairInfo.keys()].idxmin(axis=1)
     df['nearestStation'] = df['nearestStair'].apply(lambda x: stairInfo[x]['stationName'])
 
-def getLinegraph(routeID = 'L'):
+
+def getLinegraph(routeID='L'):
     print(routeNameByID[routeID])
     routeWeekdayTrips = weekdayTrips[weekdayTrips.route_id == routeID]
     stopIDs = routeWeekdayTrips.merge(weekdayTimes)
@@ -131,6 +163,6 @@ def getLinegraph(routeID = 'L'):
     return graph
 
 def getMappings(graph):
-    mapFromId = networkx.get_node_attributes(graph, 'googleName')
+    mapFromId = networkx.get_node_attributes(graph, 'name')
     mapToId = {v: k for k, v in mapFromId.items()}
     return mapFromId, mapToId
