@@ -10,7 +10,6 @@ import numpy as np
 
 GoogleMaps(app)
 
-@app.route('/')
 @app.route('/index')
 def index():
     return render_template("index.html",
@@ -33,6 +32,7 @@ def cities_page_fancy():
         cities.append(dict(name=result[0], country=result[1], population=result[2]))
     return render_template('cities.html', cities=cities)
 
+@app.route('/')
 @app.route('/input')
 def cities_input():
     return render_template("input.html")
@@ -46,8 +46,8 @@ def cities_output():
     import util
     import distances
     import getGeocodes
-    subwayStations = util.pickle_load('subwaydata/NYCsubway_network.pkl')
-    stairInfo = util.pickle_load('subwaydata/NYCsubway_network_withUnique3.pkl')
+    subwayStations = util.pickle_load('/var/www/iAppreciateNYC/subwaydata/NYCsubway_network.pkl')
+    stairInfo = util.pickle_load('/var/www/iAppreciateNYC/subwaydata/NYCsubway_network_withUnique3.pkl')
     geoObj = getGeocodes.getGeoObj(address)
     closestStair = distances.getClosestStation(geoObj.latitude,
                                                geoObj.longitude,
