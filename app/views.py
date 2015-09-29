@@ -46,9 +46,11 @@ def cities_output():
     import util
     import distances
     import getGeocodes
-    subwayStations = util.pickle_load('subwaydata/NYCsubway_network.pkl')
-    stairInfo = util.pickle_load('subwaydata/NYCsubway_network_withUnique3.pkl')
-    graph = util.pickle_load('subwaydata/NYCsubway_network_graph_9-28.pkl')
+    from datetime import date
+
+    subwayStations = util.pickle_load('./subwaydata/NYCsubway_network.pkl')
+    stairInfo = util.pickle_load('./subwaydata/NYCsubway_network_withUnique3.pkl')
+    graph = util.pickle_load('./subwaydata/NYCsubway_network_graph_9-28.pkl')
     geoObj = getGeocodes.getGeoObj(address)
     # closestStair = distances.getClosestStation(geoObj.latitude,
     #                                           geoObj.longitude,
@@ -87,13 +89,10 @@ def cities_output():
 
     sellDate2, smoothed, pred, sigma = zip(*query_results)
 
-    #line_chart = pygal.Line(disable_xml_declaration=True, x_label_rotation=20)
-    #line_chart.title = 'Price per square foot appreciation'
-    #line_chart.x_labels =  map(lambda d: d.strftime('%Y-%m-%d'), list(sellDate1))
-    #line_chart.add(closestStation, list(ppsqf))
     from pygal.style import Style
     custom_style = Style(label_font_size=16, major_label_font_size=16,
-                         colors=('#ff1100', '#E89B53', '#0000ff', '#E89B53', '#E89B53'))
+                         colors=('#ff1100', '#E89B53', '#0000ff',
+                                 '#E89B53', '#E89B53'))
 
     dateline = pygal.DateLine(disable_xml_declaration=True,
                               x_label_rotation=25,
@@ -102,6 +101,10 @@ def cities_output():
                               style=custom_style,
                               show_x_guides=True,
                               show_legend=False)
+    dateline.x_labels = [date(2008, 1, 1), date(2010, 1, 1),
+                         date(2012, 1, 1), date(2014, 1, 1), date(2016, 1, 1),
+                         date(2018, 1, 1), date(2020, 1, 1)]
+
     dateline.add(closestStation, zip(sellDate1, ppsqf))
     dateline.add('Forecast', zip(sellDate2, pred), show_dots=False,
                  stroke_style={'width': 5})
