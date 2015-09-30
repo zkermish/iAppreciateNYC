@@ -10,16 +10,20 @@ import numpy as np
 
 GoogleMaps(app)
 
-@app.route('/index')
-def index():
-    return render_template("index.html",
-        title = 'Home', user = { 'nickname': 'Miguel' },
-        )
 
+@app.route('/about')
+def about():
+    return render_template("about.html")
+
+
+@app.route('/contact')
+def contact():
+    return render_template("contact.html")
 
 @app.route("/db_fancy")
 def cities_page_fancy():
-    db = mdb.connect(user="root", host="localhost", db="world_innodb",  charset='utf8')
+    db = mdb.connect(user="root", host="localhost",
+                     db="world_innodb",  charset='utf8')
 
     with db:
         cur = db.cursor()
@@ -48,7 +52,8 @@ def cities_output():
     import getGeocodes
     from datetime import date
 
-    graph = util.pickle_load('/var/www/iAppreciateNYC/subwaydata/NYCsubway_network_graph_9-28.pkl')
+    #graph = util.pickle_load('/var/www/iAppreciateNYC/subwaydata/NYCsubway_network_graph_9-28.pkl')
+    graph = util.pickle_load('subwaydata/NYCsubway_network_graph_9-28.pkl')
     geoObj = getGeocodes.getGeoObj(address)
     closestStation = distances.getClosestStationGraph(geoObj.latitude,
                                                       geoObj.longitude,
@@ -68,14 +73,13 @@ def cities_output():
                        db="iapp2",  charset='utf8')
     with mydb:
         cur = mydb.cursor()
-        #just select the city from the world_innodb that the user inputs
-        cur.execute("SELECT sellData, `%s` FROM stationPPSFT2;" % closestStation[:60])
+        cur.execute("SELECT sellData, `%s` FROM stationPPSFT2;" %
+                    closestStation[:60])
         query_results = cur.fetchall()
 
     sellDate1, ppsqf = zip(*query_results)
     with mydb:
         cur = mydb.cursor()
-        #just select the city from the world_innodb that the user inputs
         resultTable = closestStation+'_GPprediction'
         cur.execute("SELECT sellData, `%s`, y_pred, sigma_pred FROM `%s`;" %
                     (closestStation[:60]+'_filtered', resultTable))
@@ -105,32 +109,25 @@ def cities_output():
     dateline.add('Filtered', zip(sellDate2, smoothed), show_dots=False,
                  stroke_style={'width': 5})
     upperBound = (np.array(pred, dtype=np.float) +
-                            1.96*np.array(sigma, dtype=np.float))
+                  1.96*np.array(sigma, dtype=np.float))
     lowerBound = (np.array(pred, dtype=np.float) -
-                            1.96*np.array(sigma, dtype=np.float))
+                  1.96*np.array(sigma, dtype=np.float))
     dateline.add('Bound', zip(np.array(sellDate2)[np.isfinite(upperBound)],
-                              upperBound[np.isfinite(upperBound)]),
-                              stroke_style={'width': 5,
-                                            'dasharray': '3, 6, 12, 24'},
-                              show_dots=False)
+                 upperBound[np.isfinite(upperBound)]),
+                 stroke_style={'width': 5,
+                 'dasharray': '3, 6, 12, 24'},
+                 show_dots=False)
     dateline.add('Bound', zip(np.array(sellDate2)[np.isfinite(lowerBound)],
-                              lowerBound[np.isfinite(lowerBound)]),
-                              stroke_style={'width': 5,
-                                            'dasharray': '3, 6, 12, 24'},
-                              show_dots=False)
+                 lowerBound[np.isfinite(lowerBound)]),
+                 stroke_style={'width': 5,
+                 'dasharray': '3, 6, 12, 24'},
+                 show_dots=False)
 
-    cities = []
-    #for result in query_results:
-    #    cities.append(dict(name=result[0], country=result[1], population=result[2]))
-    #call a function from a_Model package. note we are only pulling one result in the query
-    #pop_input = cities[0]['population']
-    #the_result = ModelIt(city, pop_input)
     return render_template("output.html",
-						    cities=cities,
-                            address = address,
-                            station=closestStationName,
-                            mymap=mymap,
-                            line_chart = dateline)
+                           address=address,
+                           station=closestStationName,
+                           mymap=mymap,
+                           line_chart=dateline)
 
 @app.route("/maps")
 def mapview():
