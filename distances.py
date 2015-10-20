@@ -3,6 +3,7 @@ import time
 from urllib2 import URLError
 import networkx
 
+
 def geocalc(lat0, lon0, lat1, lon1):
     """Return the distance (in km) between two points in
     geographical coordinates."""
@@ -13,10 +14,9 @@ def geocalc(lat0, lon0, lat1, lon1):
     lat1 = np.radians(lat1)
     lon1 = np.radians(lon1)
     dlon = lon0 - lon1
-    y = np.sqrt(
-            (np.cos(lat1) * np.sin(dlon)) ** 2
-         + (np.cos(lat0) * np.sin(lat1)
-         - np.sin(lat0) * np.cos(lat1) * np.cos(dlon)) ** 2)
+    y = np.sqrt((np.cos(lat1) * np.sin(dlon)) ** 2 +
+                (np.cos(lat0) * np.sin(lat1) -
+                 np.sin(lat0) * np.cos(lat1) * np.cos(dlon)) ** 2)
     x = np.sin(lat0) * np.sin(lat1) + \
         np.cos(lat0) * np.cos(lat1) * np.cos(dlon)
     c = np.arctan2(y, x)
@@ -47,8 +47,7 @@ def getClosestStationGraph(lat, lon, graph):
     for station in graph.nodes():
         node = graph.node[station]
         stationsdistances[station] = \
-            geocalc(lat, lon, float(node['lat']),
-                                float(node['lon']))
+            geocalc(lat, lon, float(node['lat']), float(node['lon']))
     return min(stationsdistances, key=stationsdistances.get)
 
 
@@ -63,6 +62,7 @@ def getStationDistances(df, subwayStations):
                                                  float(station['latitude']),
                                                  float(station['longitude'])))
 
+
 def timeoutSafeQuery(google_places, params):
     try:
         query_result = google_places.nearby_search(**params)
@@ -73,7 +73,8 @@ def timeoutSafeQuery(google_places, params):
         time.sleep(2)
         timeoutSafeQuery(google_places, params)
 
-def googlePlacesNearestSubway(lat,lon, radius=600):
+
+def googlePlacesNearestSubway(lat, lon, radius=600):
     from googleplaces import GooglePlaces, types, lang
     import credentials
     google_places = GooglePlaces(credentials.google_key)
@@ -88,18 +89,19 @@ def googlePlacesNearestSubway(lat,lon, radius=600):
         print('No subway nearby?')
         return None
 
+
 def googleMapsTransitTimes(stairInfo):
     departure_time = datetime.datetime(2015, 9, 14, 9, 0, 0)
     directions_result = gmaps.directions(origin, destination, mode='transit',
-                                         transit_mode ='subway',
-                                         departure_time = departure_time)
+                                         transit_mode='subway',
+                                         departure_time=departure_time)
 
 
 def addStationNamestoGraph(graph):
     for node in graph.nodes():
         try:
             googleInfo = googlePlacesNearestSubway(graph.node[node]['lat'],
-                                               graph.node[node]['lon'])
+                                                   graph.node[node]['lon'])
         except KeyError:
             print('No lat/lon for %s' % node)
             continue
@@ -141,13 +143,13 @@ def getClosestStation(lat, lon, subwayStations):
     for station in subwayStations['stations']:
         stationsdistances[station['name']] = \
             geocalc(lat, lon, float(station['latitude']),
-                                float(station['longitude']))
+                    float(station['longitude']))
     return min(stationsdistances, key=stationsdistances.get)
 
 
 def getClosestStations(df, stairInfo):
     '''Find the closest station for each listing in a dataframe'''
-    #stationColumns = map(lambda x: x['name'], subwayStations['stations'])
+    # stationColumns = map(lambda x: x['name'], subwayStations['stations'])
     df['nearestStair'] = df[stairInfo.keys()].idxmin(axis=1)
     df['nearestStation'] = df['nearestStair'].apply(lambda x: stairInfo[x]['stationName'])
 
@@ -161,6 +163,7 @@ def getLinegraph(routeID='L'):
     graph = make_graph([tripIds[0]])
     graph = addStationNamestoGraph(graph)
     return graph
+
 
 def getMappings(graph):
     mapFromId = networkx.get_node_attributes(graph, 'name')
