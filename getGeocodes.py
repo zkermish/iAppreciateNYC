@@ -3,7 +3,7 @@ import time
 
 from geopy.geocoders import Nominatim
 from geopy.geocoders import GoogleV3
-from geopy.geocoders.base import GeocoderTimedOut
+from geopy.geocoders.base import GeocoderTimedOut, GeocoderQueryError
 from geopy.geocoders.base import SSLError
 import util
 from credentials import google_key
@@ -23,6 +23,7 @@ def getGeoObj(address, waitTime=1.01,  numTries = 0):
     try:
         location = OSMgeolocator.geocode(address)
     except (GeocoderTimedOut, SSLError):
+    #except:
         #print('Using google. Watch out for limits!')
         #location = GOOGgeolocator.geocode(address)
         numTries += 1
@@ -32,9 +33,17 @@ def getGeoObj(address, waitTime=1.01,  numTries = 0):
         else:
             print('Using google. Watch out for limits!')
             location = GOOGgeolocator.geocode(address)
+    except GeocoderQueryError:
+        print('Bad format for query')
+        location = None
     if location is None:
         print('Using google. Watch out for limits!')
-        location = GOOGgeolocator.geocode(address)
+        try:
+            location = GOOGgeolocator.geocode(address)
+        except GeocoderQueryError:
+            print('Bad format for query')
+            return None
+
 
     print('Lat/Long = (%s, %s)' % (location.latitude, location.longitude))
     return location
